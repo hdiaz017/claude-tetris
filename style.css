@@ -9,10 +9,21 @@ body {
   color: #e0e0e0;
   font-family: system-ui, -apple-system, sans-serif;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
   user-select: none;
+  gap: 20px;
+}
+
+.game-title {
+  font-size: 48px;
+  font-weight: 900;
+  letter-spacing: 8px;
+  color: #7aa2f7;
+  text-shadow: 0 0 20px rgba(122, 162, 247, 0.4);
+  margin-bottom: 10px;
 }
 
 .wrapper {
