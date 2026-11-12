@@ -256,3 +256,13 @@ kbd {
 #restart-btn:hover {
   opacity: 0.9;
 }
+
+/* ---- [skins] Selector de skin ---- */
+#skin-select {
+  background: var(--kbd-bg);
+  color: var(--text-color);
+  border: 1px solid var(--kbd-border);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 13px;
+}
