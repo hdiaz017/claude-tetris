@@ -4,17 +4,8 @@ const COLS = 10;
 const ROWS = 20;
 const BLOCK = 30;
 
-const COLORS = [
-  null,
-  '#4dd0e1', // I - cyan
-  '#ffd54f', // O - yellow
-  '#ba68c8', // T - purple
-  '#81c784', // S - green
-  '#e57373', // Z - red
-  '#7986cb', // J - indigo
-  '#ffb74d', // L - orange
-  '#9e9e9e', // Nut - grey
-];
+// [skins] COLORS = colores de la skin activa (ver skins.js)
+let COLORS = SKINS.retro.colors;
 
 const PIECES = [
   null,
@@ -161,18 +152,13 @@ function updateHUD() {
 
 function drawBlock(context, x, y, colorIndex, size, alpha) {
   if (!colorIndex) return;
-  const color = COLORS[colorIndex];
   context.globalAlpha = alpha ?? 1;
-  context.fillStyle = color;
-  context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
-  // highlight
-  context.fillStyle = 'rgba(255,255,255,0.12)';
-  context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
+  activeSkin.drawBlock(context, x, y, COLORS[colorIndex], size);
   context.globalAlpha = 1;
 }
 
 function drawGrid() {
-  ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--grid-color');
+  ctx.strokeStyle = activeSkin.gridColor || getComputedStyle(document.body).getPropertyValue('--grid-color');
   ctx.lineWidth = 0.5;
   for (let c = 1; c < COLS; c++) {
     ctx.beginPath();
@@ -313,5 +299,24 @@ themeToggle.addEventListener('change', () => {
 });
 
 restartBtn.addEventListener('click', init);
+
+// [skins] selector de skin
+const skinSelect = document.getElementById('skin-select');
+function setSkin(key) {
+  if (!SKINS[key]) key = 'retro';
+  activeSkinKey = key;
+  activeSkin = SKINS[key];
+  COLORS = activeSkin.colors;
+  applySkinStyle();
+  skinSelect.value = key;
+  if (next) drawNext();
+}
+skinSelect.addEventListener('change', () => {
+  setSkin(skinSelect.value);
+  try { localStorage.setItem(SKIN_STORAGE_KEY, activeSkinKey); } catch (e) { /* ignore */ }
+  skinSelect.blur();
+  if (current && (paused || gameOver)) draw();
+});
+setSkin(loadSkinPref());
 
 init();
