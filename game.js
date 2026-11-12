@@ -339,7 +339,8 @@ function showGameOverRecords() {
   nameForm.classList.toggle('hidden', pendingRank < 0);
   nameInput.value = '';
   Records.render(recordsOver, -1);
-  if (pendingRank >= 0) nameInput.focus();
+  // Enfocar con retraso para que una tecla mantenida (Espacio/flechas) no escriba en el campo.
+  if (pendingRank >= 0) setTimeout(() => { if (pendingRank >= 0) nameInput.focus(); }, 600);
 }
 
 nameForm.addEventListener('submit', e => {
