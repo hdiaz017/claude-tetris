@@ -43,6 +43,7 @@ const overlayScore = document.getElementById('overlay-score');
 const restartBtn = document.getElementById('restart-btn');
 
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
+let combo = 0, bestComboRun = 0; // records: combo actual y mejor de la partida
 
 function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
@@ -139,7 +140,9 @@ function softDrop() {
 
 function lockPiece() {
   merge();
+  const linesBefore = lines;
   clearLines();
+  if (lines > linesBefore) { combo++; bestComboRun = Math.max(bestComboRun, combo); } else combo = 0;
   spawn();
 }
 
@@ -227,6 +230,7 @@ function endGame() {
   overlayTitle.textContent = 'GAME OVER';
   overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
   overlay.classList.remove('hidden');
+  showGameOverRecords(); // records
 }
 
 function togglePause() {
@@ -267,6 +271,8 @@ function init() {
   level = 1;
   paused = false;
   gameOver = false;
+  combo = 0;
+  bestComboRun = 0;
   dropInterval = 1000;
   dropAccum = 0;
   lastTime = performance.now();
@@ -274,11 +280,17 @@ function init() {
   spawn();
   updateHUD();
   overlay.classList.add('hidden');
+  startOverlay.classList.add('hidden');
+  nameForm.classList.add('hidden'); // records: limpiar restos del game over previo
+  recordsOver.textContent = '';
+  pendingRank = -1;
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
 }
 
 document.addEventListener('keydown', e => {
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return; // records: escribiendo nombre
   if (e.code === 'KeyP') { togglePause(); return; }
   if (paused || gameOver) return;
   switch (e.code) {
@@ -314,4 +326,42 @@ themeToggle.addEventListener('change', () => {
 
 restartBtn.addEventListener('click', init);
 
-init();
+// ---- Records: pantalla de inicio y fin de partida ----
+const startOverlay = document.getElementById('start-overlay');
+const nameForm = document.getElementById('name-form');
+const nameInput = document.getElementById('name-input');
+const recordsOver = document.getElementById('records-over');
+let pendingRank = -1;
+
+function showGameOverRecords() {
+  Records.recordGame(bestComboRun, lines);
+  pendingRank = Records.rankFor(score);
+  nameForm.classList.toggle('hidden', pendingRank < 0);
+  nameInput.value = '';
+  Records.render(recordsOver, -1);
+  // Enfocar con retraso para que una tecla mantenida (Espacio/flechas) no escriba en el campo.
+  if (pendingRank >= 0) setTimeout(() => { if (pendingRank >= 0) nameInput.focus(); }, 600);
+}
+
+nameForm.addEventListener('submit', e => {
+  e.preventDefault();
+  if (pendingRank < 0) return;
+  const name = nameInput.value.trim().slice(0, 12) || 'Anónimo';
+  const idx = Records.addEntry({ name, score, lines, level });
+  pendingRank = -1;
+  nameForm.classList.add('hidden');
+  Records.render(recordsOver, idx);
+  restartBtn.focus();
+});
+
+document.getElementById('start-btn').addEventListener('click', init);
+document.getElementById('reset-records-btn').addEventListener('click', () => {
+  if (confirm('¿Borrar todos los records?')) {
+    Records.reset();
+    Records.render(document.getElementById('records-start'), -1);
+  }
+});
+
+// Pantalla de inicio: el juego arranca al pulsar "Jugar".
+gameOver = true;
+Records.render(document.getElementById('records-start'), -1);
