@@ -4,17 +4,97 @@ const COLS = 10;
 const ROWS = 20;
 const BLOCK = 30;
 
-const COLORS = [
-  null,
-  '#4dd0e1', // I - cyan
-  '#ffd54f', // O - yellow
-  '#ba68c8', // T - purple
-  '#81c784', // S - green
-  '#e57373', // Z - red
-  '#7986cb', // J - indigo
-  '#ffb74d', // L - orange
-  '#9e9e9e', // Nut - grey
-];
+// Skins: cada una define su paleta (índice 1-8 = piezas) y su función de dibujo.
+function drawRetro(c, x, y, color, s) {
+  c.fillStyle = color;
+  c.fillRect(x * s + 1, y * s + 1, s - 2, s - 2);
+  c.fillStyle = 'rgba(255,255,255,0.12)';
+  c.fillRect(x * s + 1, y * s + 1, s - 2, 4);
+}
+
+function drawNeon(c, x, y, color, s) {
+  const px = x * s + 3, py = y * s + 3, w = s - 6;
+  c.save();
+  c.shadowColor = color;
+  c.shadowBlur = 12;
+  c.fillStyle = 'rgba(0,0,0,0.85)';
+  c.fillRect(px, py, w, w);
+  c.strokeStyle = color;
+  c.lineWidth = 2;
+  c.strokeRect(px, py, w, w);
+  c.restore();
+  c.fillStyle = color;
+  c.globalAlpha *= 0.35;
+  c.fillRect(px + 4, py + 4, w - 8, w - 8);
+}
+
+function roundRectPath(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+
+function drawPastel(c, x, y, color, s) {
+  const px = x * s + 2, py = y * s + 2, w = s - 4;
+  roundRectPath(c, px, py, w, w, 8);
+  c.fillStyle = color;
+  c.fill();
+  c.strokeStyle = 'rgba(255,255,255,0.7)';
+  c.lineWidth = 2;
+  c.stroke();
+  roundRectPath(c, px + 5, py + 4, w - 14, 5, 2.5);
+  c.fillStyle = 'rgba(255,255,255,0.45)';
+  c.fill();
+}
+
+function drawPixel(c, x, y, color, s) {
+  const px = x * s, py = y * s;
+  const u = s / 6; // 6x6 "píxeles" por bloque
+  c.fillStyle = color;
+  c.fillRect(px, py, s, s);
+  // patrón de textura: tablero de ajedrez sutil
+  c.fillStyle = 'rgba(0,0,0,0.18)';
+  for (let i = 1; i < 5; i++)
+    for (let j = 1; j < 5; j++)
+      if ((i + j) % 2 === 0) c.fillRect(px + i * u, py + j * u, u, u);
+  // bisel: luz arriba/izquierda, sombra abajo/derecha
+  c.fillStyle = 'rgba(255,255,255,0.5)';
+  c.fillRect(px, py, s, u);
+  c.fillRect(px, py, u, s);
+  c.fillStyle = 'rgba(0,0,0,0.45)';
+  c.fillRect(px, py + s - u, s, u);
+  c.fillRect(px + s - u, py, u, s);
+}
+
+const SKINS = {
+  retro: {
+    colors: [null, '#4dd0e1', '#ffd54f', '#ba68c8', '#81c784', '#e57373', '#7986cb', '#ffb74d', '#9e9e9e'],
+    draw: drawRetro,
+  },
+  neon: {
+    colors: [null, '#00f0ff', '#fff700', '#d400ff', '#39ff14', '#ff073a', '#4d6bff', '#ff8c00', '#cfcfcf'],
+    draw: drawNeon,
+  },
+  pastel: {
+    colors: [null, '#a8e6ef', '#fff1b8', '#d9b8f0', '#b8e8c4', '#f7b8b8', '#b8c4f0', '#fbd3a8', '#d0d0d8'],
+    draw: drawPastel,
+  },
+  pixel: {
+    colors: [null, '#29adff', '#ffec27', '#7e2553', '#00e436', '#ff004d', '#1d2b8f', '#ffa300', '#83769c'],
+    draw: drawPixel,
+  },
+};
+
+const SKIN_KEY = 'tetris-skin';
+let skinName = 'retro';
+try {
+  const saved = localStorage.getItem(SKIN_KEY);
+  if (saved && SKINS[saved]) skinName = saved;
+} catch (_) { /* localStorage no disponible */ }
 
 const PIECES = [
   null,
@@ -40,8 +120,75 @@ const levelEl = document.getElementById('level');
 const overlay = document.getElementById('overlay');
 const overlayTitle = document.getElementById('overlay-title');
 const overlayScore = document.getElementById('overlay-score');
+const skinSelect = document.getElementById('skin-select');
 const restartBtn = document.getElementById('restart-btn');
+const nameForm = document.getElementById('name-form');
+const nameInput = document.getElementById('name-input');
+const recordsList = document.getElementById('records-list');
+const recordsStats = document.getElementById('records-stats');
+const resetRecordsBtn = document.getElementById('reset-records-btn');
+const pauseOverlay = document.getElementById('pause-overlay');
+const pauseMain = document.getElementById('pause-main');
+const pauseControls = document.getElementById('pause-controls');
+const startLevelSel = document.getElementById('start-level');
+const MAX_START_LEVEL = 15;
+let startLevel = 1;
 
+function intervalFor(lvl) {
+  return Math.max(100, 1000 - (lvl - 1) * 90);
+}
+
+// ---- Récords (localStorage) ----
+const STORAGE_KEY = 'tetris-records';
+const MAX_RECORDS = 5;
+
+function loadRecords() {
+  try {
+    const d = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (d && Array.isArray(d.scores)) {
+      return {
+        scores: d.scores.slice(0, MAX_RECORDS),
+        bestCombo: +d.bestCombo || 0,
+        maxLines: +d.maxLines || 0,
+      };
+    }
+  } catch (e) { /* datos corruptos o localStorage no disponible */ }
+  return { scores: [], bestCombo: 0, maxLines: 0 };
+}
+
+function saveRecords(rec) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(rec)); } catch (e) { /* ignorar */ }
+}
+
+// Posición (0-based) que ocuparía la puntuación en el top, o -1 si no entra.
+function rankFor(rec, s) {
+  if (s <= 0) return -1;
+  const idx = rec.scores.findIndex(e => s > e.score);
+  if (idx !== -1) return idx;
+  return rec.scores.length < MAX_RECORDS ? rec.scores.length : -1;
+}
+
+function renderRecords(highlightIdx = -1, previewEntry = null) {
+  const rec = loadRecords();
+  const rows = rec.scores.slice();
+  if (previewEntry && highlightIdx >= 0) rows.splice(highlightIdx, 0, previewEntry);
+  recordsList.replaceChildren();
+  for (let i = 0; i < MAX_RECORDS; i++) {
+    const li = document.createElement('li');
+    const e = rows[i];
+    const left = document.createElement('span');
+    const right = document.createElement('span');
+    left.textContent = `${i + 1}. ${e ? e.name : '---'}`;
+    right.textContent = e ? e.score.toLocaleString() : '0';
+    li.append(left, right);
+    if (!e) li.className = 'empty';
+    if (i === highlightIdx) li.className = 'highlight';
+    recordsList.appendChild(li);
+  }
+  recordsStats.textContent = `Mejor combo: ${rec.bestCombo} · Máx. líneas: ${rec.maxLines}`;
+}
+
+let started = false, combo, maxCombo, pendingRank = -1, pendingEntry = null;
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
 
 function createBoard() {
@@ -106,11 +253,15 @@ function clearLines() {
     }
   }
   if (cleared) {
+    combo++;
+    maxCombo = Math.max(maxCombo, combo);
     lines += cleared;
     score += (LINE_SCORES[cleared] || 0) * level;
-    level = Math.floor(lines / 10) + 1;
-    dropInterval = Math.max(100, 1000 - (level - 1) * 90);
+    level = startLevel + Math.floor(lines / 10);
+    dropInterval = intervalFor(level);
     updateHUD();
+  } else {
+    combo = 0;
   }
 }
 
@@ -161,14 +312,20 @@ function updateHUD() {
 
 function drawBlock(context, x, y, colorIndex, size, alpha) {
   if (!colorIndex) return;
-  const color = COLORS[colorIndex];
+  const skin = SKINS[skinName];
+  context.save();
   context.globalAlpha = alpha ?? 1;
-  context.fillStyle = color;
-  context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
-  // highlight
-  context.fillStyle = 'rgba(255,255,255,0.12)';
-  context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
-  context.globalAlpha = 1;
+  skin.draw(context, x, y, skin.colors[colorIndex], size);
+  context.restore();
+}
+
+function applySkin(name) {
+  if (!SKINS[name]) name = 'retro';
+  skinName = name;
+  for (const k of Object.keys(SKINS)) document.body.classList.toggle('skin-' + k, k === name);
+  skinSelect.value = name;
+  try { localStorage.setItem(SKIN_KEY, name); } catch (_) {}
+  if (board && current) { draw(); drawNext(); }
 }
 
 function drawGrid() {
@@ -226,21 +383,50 @@ function endGame() {
   cancelAnimationFrame(animId);
   overlayTitle.textContent = 'GAME OVER';
   overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
-  overlay.classList.remove('hidden');
+
+  const rec = loadRecords();
+  rec.bestCombo = Math.max(rec.bestCombo, maxCombo);
+  rec.maxLines = Math.max(rec.maxLines, lines);
+  saveRecords(rec);
+
+  pendingRank = rankFor(rec, score);
+  if (pendingRank >= 0) {
+    pendingEntry = { name: '...', score };
+    nameInput.value = '';
+    nameForm.classList.remove('hidden');
+    renderRecords(pendingRank, pendingEntry);
+    overlay.classList.remove('hidden');
+    nameInput.focus();
+  } else {
+    nameForm.classList.add('hidden');
+    renderRecords();
+    overlay.classList.remove('hidden');
+  }
 }
 
 function togglePause() {
-  if (gameOver) return;
+  if (gameOver || !started) return;
   paused = !paused;
   if (!paused) {
+    hidePauseMenu();
     lastTime = performance.now();
     loop(lastTime);
   } else {
     cancelAnimationFrame(animId);
-    overlayTitle.textContent = 'PAUSA';
-    overlayScore.textContent = '';
-    overlay.classList.remove('hidden');
+    showPauseMenu();
   }
+}
+
+function showPauseMenu() {
+  pauseMain.classList.remove('hidden');
+  pauseControls.classList.add('hidden');
+  pauseOverlay.classList.remove('hidden');
+  document.getElementById('resume-btn').focus();
+}
+
+function hidePauseMenu() {
+  pauseOverlay.classList.add('hidden');
+  if (document.activeElement) document.activeElement.blur();
 }
 
 function loop(ts) {
@@ -261,26 +447,34 @@ function loop(ts) {
 }
 
 function init() {
+  started = true;
+  combo = 0;
+  maxCombo = 0;
+  pendingRank = -1;
+  pendingEntry = null;
+  nameForm.classList.add('hidden');
+  restartBtn.textContent = 'Reiniciar';
   board = createBoard();
   score = 0;
   lines = 0;
-  level = 1;
+  level = startLevel;
   paused = false;
   gameOver = false;
-  dropInterval = 1000;
+  dropInterval = intervalFor(level);
   dropAccum = 0;
   lastTime = performance.now();
   next = randomPiece();
   spawn();
   updateHUD();
   overlay.classList.add('hidden');
+  hidePauseMenu();
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
 }
 
 document.addEventListener('keydown', e => {
-  if (e.code === 'KeyP') { togglePause(); return; }
-  if (paused || gameOver) return;
+  if (e.code === 'KeyP' || e.code === 'Escape') { togglePause(); return; }
+  if (!started || paused || gameOver) return;
   switch (e.code) {
     case 'ArrowLeft':
       if (!collide(current.shape, current.x - 1, current.y)) current.x--;
@@ -312,6 +506,76 @@ themeToggle.addEventListener('change', () => {
   }
 });
 
+skinSelect.addEventListener('change', () => { applySkin(skinSelect.value); skinSelect.blur(); });
 restartBtn.addEventListener('click', init);
 
-init();
+nameForm.addEventListener('submit', e => {
+  e.preventDefault();
+  if (pendingRank < 0) return;
+  const name = nameInput.value.trim().slice(0, 10) || 'Jugador';
+  const rec = loadRecords();
+  // Recalcular posición por si los récords cambiaron (otra pestaña)
+  const idx = rankFor(rec, pendingEntry.score);
+  if (idx >= 0) {
+    rec.scores.splice(idx, 0, { name, score: pendingEntry.score, lines, date: Date.now() });
+    rec.scores = rec.scores.slice(0, MAX_RECORDS);
+    saveRecords(rec);
+  }
+  pendingRank = -1;
+  nameForm.classList.add('hidden');
+  renderRecords(idx);
+  restartBtn.focus();
+});
+
+resetRecordsBtn.addEventListener('click', () => {
+  if (!confirm('¿Borrar todos los récords?')) return;
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignorar */ }
+  pendingRank = -1;
+  nameForm.classList.add('hidden');
+  renderRecords();
+});
+
+// Pantalla de inicio: muestra récords y espera a que el jugador pulse Jugar.
+function showStart() {
+  board = createBoard();
+  next = randomPiece();
+  current = next;
+  next = randomPiece();
+  score = 0; lines = 0; level = 1;
+  paused = false;
+  gameOver = false;
+  started = false;
+  updateHUD();
+  draw();
+  drawNext();
+  overlayTitle.textContent = 'TETRIS';
+  overlayTitle.style.color = '';
+  overlayScore.textContent = '';
+  nameForm.classList.add('hidden');
+  restartBtn.textContent = 'Jugar';
+  renderRecords();
+  overlay.classList.remove('hidden');
+}
+
+applySkin(skinName);
+showStart();
+
+for (let i = 1; i <= MAX_START_LEVEL; i++) {
+  startLevelSel.add(new Option(i, i));
+}
+startLevelSel.addEventListener('change', () => {
+  startLevel = parseInt(startLevelSel.value, 10);
+});
+document.getElementById('resume-btn').addEventListener('click', togglePause);
+document.getElementById('pause-restart-btn').addEventListener('click', init);
+document.getElementById('controls-btn').addEventListener('click', () => {
+  pauseMain.classList.add('hidden');
+  pauseControls.classList.remove('hidden');
+  document.getElementById('controls-back-btn').focus();
+});
+document.getElementById('controls-back-btn').addEventListener('click', () => {
+  pauseControls.classList.add('hidden');
+  pauseMain.classList.remove('hidden');
+  document.getElementById('controls-btn').focus();
+});
+

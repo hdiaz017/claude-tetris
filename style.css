@@ -29,6 +29,71 @@ body.light-theme {
   --grid-color: #e0e0e0;
 }
 
+/* ---- Skins ---- */
+body.skin-neon {
+  --bg-color: #000;
+  --text-color: #cfe;
+  --title-color: #0ff;
+  --board-bg: #000;
+  --board-border: #0ff;
+  --panel-label: #0aa;
+  --panel-value: #0ff;
+  --kbd-bg: #001418;
+  --kbd-border: #0aa;
+  --kbd-text: #0ff;
+  --overlay-bg: rgba(0, 0, 0, 0.8);
+  --grid-color: #0d1a1f;
+}
+body.skin-neon #board { box-shadow: 0 0 18px #0ff, inset 0 0 12px rgba(0, 255, 255, 0.25); }
+body.skin-neon .game-title { text-shadow: 0 0 10px #0ff, 0 0 30px #0ff; }
+
+body.skin-pastel {
+  --bg-color: #fdf2f8;
+  --text-color: #5b4b66;
+  --title-color: #c78fd9;
+  --board-bg: #fffafc;
+  --board-border: #ecd5f0;
+  --panel-label: #b9a3c4;
+  --panel-value: #c78fd9;
+  --kbd-bg: #f5e6fa;
+  --kbd-border: #e0c8ea;
+  --kbd-text: #8a6f99;
+  --overlay-bg: rgba(253, 242, 248, 0.8);
+  --grid-color: #f3e4f3;
+}
+body.skin-pastel #board,
+body.skin-pastel #next-canvas { border-radius: 14px; }
+
+body.skin-pixel {
+  --bg-color: #1d2b53;
+  --text-color: #fff1e8;
+  --title-color: #ffec27;
+  --board-bg: #000;
+  --board-border: #c2c3c7;
+  --panel-label: #83769c;
+  --panel-value: #00e436;
+  --kbd-bg: #5f574f;
+  --kbd-border: #c2c3c7;
+  --kbd-text: #fff1e8;
+  --overlay-bg: rgba(0, 0, 0, 0.8);
+  --grid-color: #111a2e;
+}
+body.skin-pixel,
+body.skin-pixel .value,
+body.skin-pixel #overlay-score { font-family: 'Courier New', Courier, monospace; }
+body.skin-pixel #board,
+body.skin-pixel #next-canvas { border-radius: 0; border-width: 3px; image-rendering: pixelated; }
+body.skin-pixel .game-title { text-shadow: 4px 4px 0 #ff004d; }
+
+#skin-select {
+  background: var(--kbd-bg);
+  color: var(--text-color);
+  border: 1px solid var(--kbd-border);
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 12px;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -255,4 +320,160 @@ kbd {
 
 #restart-btn:hover {
   opacity: 0.9;
+}
+
+/* ---- Récords ---- */
+.name-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--panel-value);
+}
+
+.name-form.hidden {
+  display: none;
+}
+
+.name-row {
+  display: flex;
+  gap: 6px;
+}
+
+#name-input {
+  width: 110px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--board-border);
+  background: var(--board-bg);
+  color: var(--text-color);
+  font-family: 'Courier New', Courier, monospace;
+}
+
+/* ---- Pause menu ---- */
+.menu-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  color: #e57373;
+}
+
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+  min-width: 190px;
+}
+
+.menu-list.hidden {
+  display: none;
+}
+
+#save-btn,
+.menu-btn {
+  background: var(--title-color);
+  color: var(--bg-color);
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.records {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+}
+
+.records .label {
+  color: var(--panel-label);
+  letter-spacing: 2px;
+}
+
+#records-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 190px;
+}
+
+#records-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+#records-list li.empty {
+  opacity: 0.4;
+}
+
+#records-list li.highlight {
+  background: var(--title-color);
+  color: var(--bg-color);
+  font-weight: 700;
+}
+
+.records-stats {
+  margin: 4px 0 0;
+  color: var(--panel-label);
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--panel-label);
+  text-decoration: underline;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.link-btn:hover {
+  color: #e57373;
+}
+
+.menu-btn {
+  padding: 10px 28px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: opacity 0.15s;
+}
+
+.menu-btn:hover,
+.menu-btn:focus-visible {
+  opacity: 0.85;
+}
+
+.menu-level {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--panel-value);
+}
+
+.menu-level select {
+  font: inherit;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.menu-controls {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--panel-value);
 }

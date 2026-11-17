@@ -8,6 +8,12 @@
 </head>
 <body class="dark-theme">
   <div class="theme-toggle-container">
+    <select id="skin-select" aria-label="Skin">
+      <option value="retro">Retro</option>
+      <option value="neon">Neon</option>
+      <option value="pastel">Pastel</option>
+      <option value="pixel">Pixel art</option>
+    </select>
     <label class="theme-switch">
       <input type="checkbox" id="theme-toggle" checked>
       <span class="slider"></span>
@@ -55,7 +61,44 @@
       <div class="overlay-box">
         <p id="overlay-title">GAME OVER</p>
         <p id="overlay-score"></p>
+        <form id="name-form" class="name-form hidden" autocomplete="off">
+          <label for="name-input">¡Nuevo récord! Tu nombre:</label>
+          <div class="name-row">
+            <input id="name-input" type="text" maxlength="10" placeholder="Jugador" />
+            <button type="submit" id="save-btn">Guardar</button>
+          </div>
+        </form>
+        <div id="records" class="records">
+          <span class="label">RÉCORDS</span>
+          <ol id="records-list"></ol>
+          <p id="records-stats" class="records-stats"></p>
+          <button type="button" id="reset-records-btn" class="link-btn">Resetear récords</button>
+        </div>
         <button id="restart-btn">Reiniciar</button>
+      </div>
+    </div>
+
+    <div id="pause-overlay" class="overlay hidden">
+      <div class="overlay-box">
+        <p class="menu-title">PAUSA</p>
+        <div id="pause-main" class="menu-list">
+          <button id="resume-btn" class="menu-btn">Reanudar</button>
+          <button id="pause-restart-btn" class="menu-btn">Reiniciar</button>
+          <button id="controls-btn" class="menu-btn">Ver controles</button>
+          <label class="menu-level">Nivel inicial
+            <select id="start-level"></select>
+          </label>
+        </div>
+        <div id="pause-controls" class="menu-list hidden">
+          <ul class="menu-controls">
+            <li><kbd>←</kbd><kbd>→</kbd> mover</li>
+            <li><kbd>↑</kbd> / <kbd>X</kbd> rotar</li>
+            <li><kbd>↓</kbd> bajar</li>
+            <li><kbd>Space</kbd> caída</li>
+            <li><kbd>P</kbd> / <kbd>Esc</kbd> pausa</li>
+          </ul>
+          <button id="controls-back-btn" class="menu-btn">Volver</button>
+        </div>
       </div>
     </div>
   </div>
